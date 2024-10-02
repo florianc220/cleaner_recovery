@@ -53,6 +53,7 @@ def choose_disk(disks):
         print("Entrez un nombre valide.")
         return choose_disk(disks)
 
+
 def choose_partition(partitions):
     """
     Demande à l'utilisateur de choisir une partition.
@@ -71,12 +72,29 @@ def choose_partition(partitions):
         return choose_partition(partitions)
 
 
-def read_deleted_files(fs_info):
+def read_deleted_files(directory):
     """
-    Analyse les fichiers supprimés
+    Lit les fichiers supprimés dans le dossier racine et les sous dossier
     """
-
-
+    for node in directory:
+        if node.info.meta:
+            #Si c'est un fichier supprimé
+            if node.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG and node.info.meta.flags & pytsk3.TSK_FS_META_FLAG_UNALLOC:
+                try:
+                    if node.info.meta.name.name:
+                        file_name = node.info.name.name.decode('utf-8')
+                    else:
+                        file_name = f'Fichier sans nom'
+                    print(f'Fichier supprimé: {file_name}')
+                except Exception as e:
+                    print(f'Erreur lors de la lecture du nom du fichier: {e}')
+            #Si c'est un dossier, on parcours récursivement
+            if node.info.meta.type == pytsk3.TSK_FS_META_TYPE_DIR:
+                try:
+                    new_dir = node.as_directory()
+                    read_deleted_files(new_dir)
+                except Exception as e:
+                    print(f'Erreur lors de la lecture du dossier: {e}')
 
 def read_partition(disk, partition):
     """
@@ -90,10 +108,7 @@ def read_partition(disk, partition):
         #Lecture des fichiers supprimés
         try:
             root_directory = fs_info.open_dir(path="/")
-            for node in root_directory:
-                if node.info.meta:
-                    if node.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG and node.info.meta.flags & pytsk3.TSK_FS_META_FLAG_UNALLOC:
-                        print(f'Fichiers supprimé: {node.info.name.name.decode("utf-8")}')
+            read_deleted_files(root_directory)
         except Exception as e:
             print(f'Erreur lors de l\'analyse des fichiers supprimés: {e}')
     except Exception as e:

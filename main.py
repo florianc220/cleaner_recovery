@@ -1,7 +1,7 @@
-import psutil
 import pytsk3
 import os
 from tqdm import tqdm
+
 
 def search_disks():
     """
@@ -71,17 +71,12 @@ def choose_partition(partitions):
         return choose_partition(partitions)
 
 
-def read_deleted_files(fs_info):
-    """
-    Analyse les fichiers supprimés
-    """
-
-
-
 def read_partition(disk, partition):
     """
-        Ouvre l'image du disque à l'offset de la partition choisie et lit les fichiers supprimés.
+        Ouvre l'image du disque à l'offset de la partition choisie
+        et lit les fichiers supprimés avant de les retourner dans une liste
     """
+    deleted_files = []
     try:
         print(f'Lecture de la partition {partition[0]}...')
         img_info = pytsk3.Img_Info(disk)
@@ -90,14 +85,46 @@ def read_partition(disk, partition):
         #Lecture des fichiers supprimés
         try:
             root_directory = fs_info.open_dir(path="/")
-            for node in root_directory:
-                if node.info.meta:
-                    if node.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG and node.info.meta.flags & pytsk3.TSK_FS_META_FLAG_UNALLOC:
-                        print(f'Fichiers supprimé: {node.info.name.name.decode("utf-8")}')
+            total_files = sum(1 for _ in root_directory)
+
+            root_directory = fs_info.open_dir(path="/")
+            with tqdm(total=total_files, desc="Recherche des fichiers supprimés", unit=" file") as pbar:
+                for inode in root_directory:
+                    #Si est un fichier ou un dossier
+                    if inode.info.meta:
+                        #Si est un fichier ordinaire (pas un répertoire ou autre type spécial) et qu'il est marqué comme "non alloué"
+                        if inode.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG and inode.info.meta.flags & pytsk3.TSK_FS_META_FLAG_UNALLOC:
+                            deleted_files.append(inode)
+                            #print(f'Fichier supprimé: {inode.info.name.name.decode("utf-8")}')
+                    pbar.update(1)
+            return deleted_files
         except Exception as e:
             print(f'Erreur lors de l\'analyse des fichiers supprimés: {e}')
+            return None
     except Exception as e:
         print(f"Erreur lors de la lecture de la partition: {e}")
+        return None
+
+
+def choose_files_to_restore(deleted_files):
+    files_to_restore = []
+    print('Choisissez l\'indice du/des fichier(s) à restaurer')
+    for index, file in enumerate(deleted_files):
+        print(f'{index}: {file.info.name.name.decode('utf-8')}')
+
+    while True:
+        choice = (int)(input("Saisir l'index pour ajouter le fichier souhaité | Continuer: -1 | Annuler: -2: "))
+        # On soumet la liste de fichiers à restaurer
+        if choice == -1:
+            return files_to_restore
+        # On annule
+        elif choice == -2:
+            return None
+        #On ajoute à la liste indice correct et si n'est pas déjà présent
+        elif 0 <= choice < len(deleted_files):
+            if deleted_files[choice] not in files_to_restore:
+                files_to_restore.append(deleted_files[choice])
+                print(f'Fichier {deleted_files[choice].info.name.name.decode("utf-8")} ajouté à la liste')
 
 
 if __name__ == "__main__":
@@ -112,4 +139,11 @@ if __name__ == "__main__":
         if partitions is not None:
             chosed_part = choose_partition(partitions)
             print(f'Partition choisie: {chosed_part}')
-            read_partition(chosed_disk, chosed_part)
+            deleted_files = read_partition(chosed_disk, chosed_part)
+            files_to_restore = choose_files_to_restore(deleted_files)
+            if files_to_restore is not None:
+                print('Fichiers à restaurer',end=' => ')
+                for file in files_to_restore:
+                    print(f'{file.info.name.name.decode("utf-8")}',end=' => ')
+                #SUITE DES ACTIONS ...
+

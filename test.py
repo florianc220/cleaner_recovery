@@ -1,3 +1,7 @@
+import psutil
+import pytsk3
+import os
+
 # Fonction pour lister les disques physiques
 def list_disk():
     print("Liste des disques physiques disponibles :")
@@ -26,6 +30,7 @@ def chose_disk(disks):
 # Fonction pour récupérer les partitions d'un disque
 def list_partitions(disk):
     try:
+        print(disk)
         img = pytsk3.Img_Info(disk)
         partition_table = pytsk3.Volume_Info(img)
         partitions = []
@@ -50,4 +55,19 @@ def choose_partition(partitions):
             return choose_partition(partitions)
     except ValueError:
         print("Entrez un nombre valide.")
-        return choose_partition(partitions
+        return choose_partition(partitions)
+
+if __name__ == "__main__":
+    disks = list_disk()
+    if not disks:
+        print("Aucun disque trouvé.")
+        exit(1)
+    disk = chose_disk(disks)
+    print(f"Vous avez choisi le disque {disk}.")
+    partitions = list_partitions(disk)
+    if not partitions:
+        print("Aucune partition trouvée.")
+        exit(1)
+    partition = choose_partition(partitions)
+    print(f"Vous avez choisi la partition {partition}.")
+    exit(0)

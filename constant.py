@@ -1,1 +1,0 @@
-IMG_DISK_PATH = "image_disk"

@@ -127,6 +127,40 @@ def choose_files_to_restore(deleted_files):
                 print(f'Fichier {deleted_files[choice].info.name.name.decode("utf-8")} ajouté à la liste')
 
 
+def restore_file(files_to_restore, chosed_disk, chosed_part):
+    """
+    Restaure les fichiers sélectionnés dans un répertoire spécifique
+    """
+    for file in files_to_restore:
+        try:
+            inode_nb = file.info.meta.addr
+            file_name = file.info.name.name.decode('utf-8')
+            output_file_path = os.path.join(os.getcwd(), file_name)
+            print(f'inode_nb: {inode_nb}, output: {output_file_path}')
+
+            image_disk = pytsk3.Img_Info(chosed_disk)
+            fs_info = pytsk3.FS_Info(image_disk, offset=chosed_part[0] * 512)
+
+            restore_file = fs_info.open_meta(inode_nb)
+
+            with open(output_file_path, 'wb') as output_file:
+                file_size = restore_file.info.meta.size
+                offset = 0
+
+                while offset < file_size:
+                    available_to_read = min(1024*1024, file_size-offset)
+                    data = restore_file.read_random(offset, available_to_read)
+                    if not data:
+                        break
+                    output_file.write(data)
+                    offset += len(data)
+
+            print(f'Fichier {file_name} restauré avec succès')
+
+        except Exception as e:
+            print(f'Erreur lors de la restauration du fichier {file.info.name.name.decode('utf-8')}: {e}')
+
+
 if __name__ == "__main__":
     print("Bienvenue sur Cleaner Recovery !")
     disks = search_disks()
@@ -145,5 +179,6 @@ if __name__ == "__main__":
                 print('Fichiers à restaurer',end=' => ')
                 for file in files_to_restore:
                     print(f'{file.info.name.name.decode("utf-8")}',end=' => ')
-                #SUITE DES ACTIONS ...
+                print()
+                restore_file(files_to_restore, chosed_disk, chosed_part)
 

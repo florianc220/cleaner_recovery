@@ -209,6 +209,7 @@ if __name__ == "__main__":
     if os_is_windows() and not executed_as_admin():
         print("Ce programme nécessite des privilèges administrateur pour fonctionner correctement.")
         print("Veuillez exécuter le programme en tant qu'administrateur.")
+        time.sleep(2)
         sys.exit(1)
 
 

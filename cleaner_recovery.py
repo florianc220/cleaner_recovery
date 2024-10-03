@@ -9,13 +9,16 @@ from tqdm import tqdm
 def search_disks():
     """
     Cherche les disques visible sur la machine et les affiche dans l'invite de commande.
-    Retourne une liste des disques trouvées ou None.
+
+    :return
+        list: Liste des disques trouvés.
+        None: Si une erreur survient.
     """
     print("Disques présents sur le système...")
     disks = []
     for disk in range(10):  # On teste les disques \\.\PhysicalDrive0 à \\.\PhysicalDrive9
         disk_path = f"\\\\.\\PhysicalDrive{disk}"
-        if os.path.exists(disk_path):  # Vérifie si le disque existe
+        if os.path.exists(disk_path):  # On vérifie si le disque existe
             disks.append(disk_path)
             print(f"{len(disks)}. {disk_path}")
     return disks
@@ -24,7 +27,13 @@ def search_disks():
 def search_partitions(disque):
     """
     Cherche les partitions d'un disque donné.
-    Retourne une liste des partitions trouvées ou None.
+
+    :arg
+        disque (String): Le disque à analyser.
+
+    :return
+        list: Liste des partitions trouvées.
+        None: Si une erreur survient.
     """
     try:
         image_disk = pytsk3.Img_Info(disque)
@@ -42,7 +51,12 @@ def search_partitions(disque):
 def choose_disk(disks):
     """
     Demande à l'utilisateur de choisir un disque.
-    Retourne le disque choisi.
+
+    :arg
+        disks (list): Liste des disques trouvés.
+
+    :return
+        str: Le disque choisi
     """
     choice = input(f"Choisissez un disque (1-{len(disks)}): ")
     try:
@@ -60,7 +74,12 @@ def choose_disk(disks):
 def choose_partition(partitions):
     """
     Demande à l'utilisateur de choisir une partition.
-    Retourne la partition choisie.
+
+    :arg
+        partitions (list): Liste des partitions trouvées.
+
+    :return
+        tuple: La partition choisie
     """
     choice = input(f"Choisissez une partition (1-{len(partitions)}): ")
     try:
@@ -77,8 +96,17 @@ def choose_partition(partitions):
 
 def read_partition(disk, partition, strict=True):
     """
-        Ouvre l'image du disque à l'offset de la partition choisie
-        et lit les fichiers supprimés avant de les retourner dans une liste
+    Ouvre l'image du disque à l'offset de la partition choisie et lit les fichiers supprimés avant de les retourner dans
+    une liste
+
+    :arg
+        disk (str): Le disque à analyser
+        partition (tuple): La partition à analyser
+        strict (bool): Si True, on ne prend que les fichiers "ordinaire" et marqués comme "non alloué"
+
+    :return
+        list: Liste des fichiers supprimés
+        None: Si une erreur survient
     """
     deleted_files = []
     try:
@@ -86,7 +114,7 @@ def read_partition(disk, partition, strict=True):
         img_info = pytsk3.Img_Info(disk)
         partition_offset = partition[0] * 512  # Multiplie par 512 car l'offset est en secteurs
         fs_info = pytsk3.FS_Info(img_info, offset=partition_offset)
-        #Lecture des fichiers supprimés
+        # Lecture des fichiers supprimés
         try:
             root_directory = fs_info.open_dir(path="/")
             total_files = sum(1 for _ in root_directory)
@@ -94,13 +122,13 @@ def read_partition(disk, partition, strict=True):
             root_directory = fs_info.open_dir(path="/")
             with tqdm(total=total_files, desc="Recherche des fichiers supprimés", unit=" file") as pbar:
                 for inode in root_directory:
-                    #Si est un fichier ou un dossier
+                    # Si est un fichier ou un dossier
                     if inode.info.meta:
-                        #On ne veut que les fichiers ordinaire (pas de répertoire ou autre type spécial) et qu'il est marqué comme "non alloué"
+                        # On ne veut que les fichiers ordinaire (pas de répertoire ou autre type spécial) et qu'il est marqué comme "non alloué"
                         if strict:
                             if inode.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG and inode.info.meta.flags & pytsk3.TSK_FS_META_FLAG_UNALLOC:
                                 deleted_files.append(inode)
-                        #On prend tout types de fichiers "non alloué"
+                        # On prend tout types de fichiers "non alloué"
                         else:
                             if inode.info.meta.flags & pytsk3.TSK_FS_META_FLAG_UNALLOC:
                                 deleted_files.append(inode)
@@ -115,6 +143,16 @@ def read_partition(disk, partition, strict=True):
 
 
 def choose_files_to_restore(deleted_files):
+    """
+    Demande à l'utilisateur de choisir les fichiers à restaurer
+
+    :arg
+        deleted_files (list): Liste des fichiers supprimés
+
+    :return
+        list: Liste des fichiers à restaurer
+        None: Si l'utilisateur annule
+    """
     files_to_restore = []
 
     time.sleep(0.25)
@@ -123,7 +161,7 @@ def choose_files_to_restore(deleted_files):
         print(f'{index}: {file.info.name.name.decode('utf-8')}')
 
     while True:
-        choice = (int)(input("Saisir l'index pour ajouter le fichier souhaité | Tout Sélectionner: -1 | Continuer: -2 | Annuler: -3: "))
+        choice = int(input("Saisir l'index pour ajouter le fichier souhaité | Tout Sélectionner: -1 | Continuer: -2 | Annuler: -3: "))
         if choice == -1:
             return deleted_files
         # On soumet la liste de fichiers à restaurer
@@ -132,7 +170,7 @@ def choose_files_to_restore(deleted_files):
         # On annule
         elif choice == -3:
             return None
-        #On ajoute à la liste indice correct et si n'est pas déjà présent
+        # On ajoute à la liste indice correct et si n'est pas déjà présent
         elif 0 <= choice < len(deleted_files):
             if deleted_files[choice] not in files_to_restore:
                 files_to_restore.append(deleted_files[choice])
@@ -142,13 +180,21 @@ def choose_files_to_restore(deleted_files):
 def restore_file(files_to_restore, chosed_disk, chosed_part):
     """
     Restaure les fichiers sélectionnés dans un répertoire spécifique
+
+    :arg
+        files_to_restore (list): Liste des fichiers à restaurer
+        chosed_disk (str): Disque choisi
+        chosed_part (tuple): Partition choisie
+
+    :return
+        None
     """
-    #Création du répertoire "restored_files" s'il n'existe pas
+    # Création du répertoire "restored_files" s'il n'existe pas
     restored_dir = os.path.join(os.getcwd(), 'restored_files')
     if not os.path.exists(restored_dir):
         os.makedirs(restored_dir)
 
-    print('Fichiers à restaurer',end=': ')
+    print('Fichiers à restaurer', end=': ')
     for file in files_to_restore:
         print(f'{file.info.name.name.decode("utf-8")}', end=', ')
     print()
@@ -162,7 +208,7 @@ def restore_file(files_to_restore, chosed_disk, chosed_part):
                 inode_nb = file.info.meta.addr
                 file_name = file.info.name.name.decode('utf-8')
                 output_file_path = os.path.join(restored_dir, file_name)
-                #print(f'inode_nb: {inode_nb}, output: {output_file_path}')
+                # print(f'inode_nb: {inode_nb}, output: {output_file_path}')
 
                 image_disk = pytsk3.Img_Info(chosed_disk)
                 fs_info = pytsk3.FS_Info(image_disk, offset=chosed_part[0] * 512)
@@ -178,7 +224,7 @@ def restore_file(files_to_restore, chosed_disk, chosed_part):
                             break
                         output_file.write(data)
                         offset += len(data)
-                        #success_cpt += 1
+                        # success_cpt += 1
 
             except Exception as e:
                 print(f'Erreur lors de la restauration du fichier {file.info.name.name.decode('utf-8')}: {e}')
@@ -191,17 +237,22 @@ def restore_file(files_to_restore, chosed_disk, chosed_part):
         os.startfile(restored_dir)
 
 
-def os_is_windows()->bool:
+def os_is_windows() -> bool:
     """
     Vérifie si le système d'exploitation est Windows
-    :return: True si Windows, False sinon
+
+    :return
+        True si Windows, False sinon
     """
     return False if sys.platform != "win32" else True
 
-def executed_as_admin()->bool:
+
+def executed_as_admin() -> bool:
     """
     Vérifie si le programme est exécuté en tant qu'administrateur
-    :return: True si l'utilisateur est administrateur, False sinon
+
+    :return
+        True si l'utilisateur est administrateur, False sinon
     """
     return True if ctypes.windll.shell32.IsUserAnAdmin() else False
 
@@ -209,6 +260,7 @@ def executed_as_admin()->bool:
 
 if __name__ == "__main__":
 
+    # Vérification de l'os et des privilèges administrateur
     if os_is_windows() and not executed_as_admin():
         print("Ce programme nécessite des privilèges administrateur pour fonctionner correctement.")
         print("Veuillez exécuter le programme en tant qu'administrateur.")
@@ -216,11 +268,12 @@ if __name__ == "__main__":
         sys.exit(1)
 
 
+    # Début du programme
     print("Bienvenue sur Cleaner Recovery !")
     strict = True
     while True:
-        choice = (int)(input('Menu:\n0: Analyse des fichiers supprimés.\n1: Options.\n2: Quitter '))
-        if choice == 0 :
+        choice = int(input('Menu:\n0: Analyse des fichiers supprimés.\n1: Options.\n2: Quitter '))
+        if choice == 0:
             disks = search_disks()
             if disks is not None:
                 chosed_disk = choose_disk(disks)
@@ -235,7 +288,7 @@ if __name__ == "__main__":
                         restore_file(files_to_restore, chosed_disk, chosed_part)
         elif choice == 1:
             print(f'Options:')
-            strict_value = (int)(input(f'Lecture des fichiers "ordinaire" lors de l\'analyse des fichiers supprimés ? Actuel: {strict}({(int)(strict)}) '))
+            strict_value = int(input(f'Lecture des fichiers "ordinaire" lors de l\'analyse des fichiers supprimés ? Actuel: {strict}({int(strict)}) '))
             if strict_value == 0:
                 strict = False
             elif strict_value == 1:
@@ -245,8 +298,3 @@ if __name__ == "__main__":
             print(f'Option set to {strict}')
         elif choice == 2:
             break
-
-
-
-
-

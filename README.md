@@ -10,7 +10,9 @@ Un programme Windows capable de récupérer des fichiers supprimés ou des donn�
 - time : Pour les délais
 
 ## Utilisation
-Lancer l'exécutable cleaner_recovery.exe en tant qu'administrateur. 
+Lancer l'exécutable cleaner_recovery.exe en tant qu'administrateur.
+Une fois la récupération de fichiers terminée, les fichiers seront placés 
+dans un dossier "recovered_files" à la racine du programme.
 
 Suivre les instructions:
 - Arrivée sur le menu: 

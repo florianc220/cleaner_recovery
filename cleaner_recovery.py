@@ -185,8 +185,10 @@ def restore_file(files_to_restore, chosed_disk, chosed_part):
             success_cpt += 1
             pbar.update(1)
 
-        time.sleep(0.25)
+        time.sleep(0.5)
+        print()
         print(f'{success_cpt} fichier(s) restauré(s) avec succès dans le répertoire: {os.getcwd()}\\restored_files')
+        os.startfile(restored_dir)
 
 
 def os_is_windows()->bool:

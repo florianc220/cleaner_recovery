@@ -1,7 +1,8 @@
 # cleaner_recovery
 Un programme Windows capable de récupérer des fichiers supprimés ou des données perdues sur une usb.
 
-Attention, il est possible que certains fichiers soient corrompus et inutilisables malgré la récupérations.
+Attention, il est possible que certains fichiers soient corrompus et inutilisables malgré la récupération.
+
 ## Installation
 1. git clone https://github.com/florianc220/cleaner_recovery.git
 2. Télécharger l'exécutable cleaner_recovery.exe du dossier dist

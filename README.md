@@ -14,16 +14,16 @@ dans un dossier "recovered_files" à la racine du programme.
 
 Suivre les instructions:
 - Arrivée sur le menu: 
-    - 0: Commencer l'analyse d'un disque
+    - Commencer l'analyse d'un disque
       - Choisir le disque à analyser
       - Choisir la partition du disque à analyser
       - Affichage des fichiers trouvés
       - Sélection des fichiers à récupérer
       - Récupération des fichiers
       - Fin de l'analyse
-    - 1: Options
+    - Options
       - Analyse des fichiers ordinaire. True(1) ou False(0)
-    - 2: Quitter
+    - Quitter
       - Fin du programme
 
 ## Librairies utilisées:

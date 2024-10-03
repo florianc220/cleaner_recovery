@@ -29,3 +29,6 @@ Suivre les instructions:
 ## Librairies utilisées:
 - pytsk3 : Pour la lecture des partitions
 - tqdm : Pour la barre de progression en invite de commande
+
+## Lien VirusTotal:
+https://www.virustotal.com/gui/file/74c076bce85348ab39072dff078e9b096fe4e3e1b1197f0e84e8e4ec56e21ded/detection

@@ -1,7 +1,10 @@
-import pytsk3
 import os
-from tqdm import tqdm
+import sys
 import time
+import ctypes
+import pytsk3
+from tqdm import tqdm
+
 
 def search_disks():
     """
@@ -52,6 +55,7 @@ def choose_disk(disks):
     except ValueError:
         print("Entrez un nombre valide.")
         return choose_disk(disks)
+
 
 def choose_partition(partitions):
     """
@@ -139,6 +143,11 @@ def restore_file(files_to_restore, chosed_disk, chosed_part):
     """
     Restaure les fichiers sélectionnés dans un répertoire spécifique
     """
+    #Création du répertoire "restored_files" s'il n'existe pas
+    restored_dir = os.path.join(os.getcwd(), 'restored_files')
+    if not os.path.exists(restored_dir):
+        os.makedirs(restored_dir)
+
     print('Fichiers à restaurer',end=': ')
     for file in files_to_restore:
         print(f'{file.info.name.name.decode("utf-8")}', end=', ')
@@ -152,7 +161,7 @@ def restore_file(files_to_restore, chosed_disk, chosed_part):
             try:
                 inode_nb = file.info.meta.addr
                 file_name = file.info.name.name.decode('utf-8')
-                output_file_path = os.path.join(f'{os.getcwd()}\\restored_files', file_name)
+                output_file_path = os.path.join(restored_dir, file_name)
                 #print(f'inode_nb: {inode_nb}, output: {output_file_path}')
 
                 image_disk = pytsk3.Img_Info(chosed_disk)
@@ -179,10 +188,32 @@ def restore_file(files_to_restore, chosed_disk, chosed_part):
         print(f'{success_cpt} fichier(s) restauré(s) avec succès dans le répertoire: {os.getcwd()}\\restored_files')
 
 
+def os_is_windows()->bool:
+    """
+    Vérifie si le système d'exploitation est Windows
+    :return: True si Windows, False sinon
+    """
+    return False if sys.platform != "win32" else True
+
+def executed_as_admin()->bool:
+    """
+    Vérifie si le programme est exécuté en tant qu'administrateur
+    :return: True si l'utilisateur est administrateur, False sinon
+    """
+    return True if ctypes.windll.shell32.IsUserAnAdmin() else False
+
+
+
 if __name__ == "__main__":
+
+    if os_is_windows() and not executed_as_admin():
+        print("Ce programme nécessite des privilèges administrateur pour fonctionner correctement.")
+        print("Veuillez exécuter le programme en tant qu'administrateur.")
+        sys.exit(1)
+
+
     print("Bienvenue sur Cleaner Recovery !")
     strict = True
-
     while True:
         choice = (int)(input('Menu:\n0: Analyse des fichiers supprimés.\n1: Options.\n2: Quitter '))
         if choice == 0 :
